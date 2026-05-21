@@ -6,41 +6,115 @@ import api from '../api/axios';
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
+    setLoading(true); setError('');
     try {
       const { data } = await api.post('/auth/login', form);
-      login({ name: data.name, role: data.role }, data.token);
+      login({ name: data.name, role: data.role, id: data.id }, data.token);
       navigate(data.role === 'caterer' ? '/dashboard' : '/browse');
-    } catch {
-      setError('Invalid email or password');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid email or password');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleKey = e => { if (e.key === 'Enter') handleSubmit(); };
+
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Welcome Back</h2>
-        {error && <p style={styles.error}>{error}</p>}
-        <input style={styles.input} placeholder="Email"
-          value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-        <input style={styles.input} type="password" placeholder="Password"
-          value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-        <button style={styles.button} onClick={handleSubmit}>Login</button>
-        <p style={styles.link}>No account? <Link to="/register">Register here</Link></p>
+    <div className="auth-bg">
+      <div style={styles.wrapper}>
+        {/* Left panel */}
+        <div style={styles.hero}>
+          <div style={styles.heroInner}>
+            <div style={styles.brand}>🍽 Kateryu</div>
+            <h1 style={styles.heroTitle}>
+              Exceptional catering,<br />effortlessly booked.
+            </h1>
+            <p style={styles.heroSub}>
+              Connect with the finest caterers for your events. Weddings, corporate gatherings, celebrations — all in one place.
+            </p>
+            <div style={styles.pillRow}>
+              {['Weddings', 'Corporate', 'Birthdays', 'Festivals'].map(t => (
+                <span key={t} style={styles.pill}>{t}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div style={styles.formPanel} className="fade-up">
+          <h2 style={styles.formTitle}>Welcome back</h2>
+          <p style={styles.formSub}>Sign in to your account</p>
+
+          {error && <div className="error-msg">{error}</div>}
+
+          <div className="field">
+            <label>Email address</label>
+            <input type="email" placeholder="you@example.com"
+              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+              onKeyDown={handleKey} autoFocus />
+          </div>
+          <div className="field">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••"
+              value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+              onKeyDown={handleKey} />
+          </div>
+
+          <button className="btn-primary" onClick={handleSubmit} disabled={loading}
+            style={{ marginTop: 8 }}>
+            {loading ? 'Signing in…' : 'Sign in →'}
+          </button>
+
+          <p style={styles.switchText}>
+            Don't have an account?{' '}
+            <Link to="/register" style={styles.switchLink}>Create one free</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
 const styles = {
-  container: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' },
-  card: { background: '#fff', padding: 40, borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.1)', width: 360 },
-  title: { marginBottom: 24, textAlign: 'center', color: '#333' },
-  input: { width: '100%', padding: '10px 12px', marginBottom: 14, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' },
-  button: { width: '100%', padding: 12, background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: 'pointer' },
-  error: { color: 'red', marginBottom: 12, fontSize: 13 },
-  link: { textAlign: 'center', marginTop: 16, fontSize: 13 }
+  wrapper: {
+    display: 'flex', borderRadius: 24,
+    overflow: 'hidden', width: '100%', maxWidth: 880,
+    boxShadow: '0 24px 80px rgba(28,25,23,0.18)',
+    minHeight: 560,
+  },
+  hero: {
+    flex: '1 1 55%',
+    background: 'linear-gradient(145deg, #1C1917 0%, #3D2B1F 100%)',
+    padding: 48, display: 'flex', alignItems: 'flex-end',
+    position: 'relative', overflow: 'hidden',
+  },
+  heroInner: { position: 'relative', zIndex: 1 },
+  brand: {
+    fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700,
+    color: '#C1440E', marginBottom: 32, letterSpacing: '-0.01em',
+  },
+  heroTitle: {
+    fontFamily: 'Playfair Display, serif', fontSize: 32, fontWeight: 700,
+    color: '#FAF7F2', lineHeight: 1.25, marginBottom: 14, letterSpacing: '-0.02em',
+  },
+  heroSub: { fontSize: 14, color: 'rgba(250,247,242,0.60)', lineHeight: 1.7, marginBottom: 24 },
+  pillRow: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+  pill: {
+    padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+    background: 'rgba(193,68,14,0.25)', color: '#F9A87A', border: '1px solid rgba(193,68,14,0.35)',
+  },
+  formPanel: {
+    flex: '1 1 45%', background: '#FFFFFF',
+    padding: 48, display: 'flex', flexDirection: 'column', justifyContent: 'center',
+  },
+  formTitle: { fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 700, color: '#1C1917', marginBottom: 4 },
+  formSub: { fontSize: 14, color: '#8C7B72', marginBottom: 28 },
+  switchText: { textAlign: 'center', marginTop: 20, fontSize: 13, color: '#8C7B72' },
+  switchLink: { color: '#C1440E', fontWeight: 600, textDecoration: 'none' },
 };

@@ -5,37 +5,99 @@ import api from '../../api/axios';
 
 export default function BrowseCaterers() {
   const [caterers, setCaterers] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/caterers').then(res => setCaterers(res.data)).catch(console.error);
+    api.get('/caterers')
+      .then(res => setCaterers(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
+  const filtered = caterers.filter(c =>
+    !search ||
+    c.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.cuisine?.some(cu => cu.toLowerCase().includes(search.toLowerCase())) ||
+    c.serviceArea?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div style={styles.page}>
-      <div style={styles.navbar}>
-        <h2 style={{ margin: 0 }}>🍽 Kateryu</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span>Hi, {user?.name}</span>
-          <button style={styles.navBtn} onClick={() => navigate('/my-bookings')}>My Bookings</button>
-          <button style={styles.navBtn} onClick={() => { logout(); navigate('/login'); }}>Logout</button>
+    <div className="page">
+      <nav className="navbar">
+        <div className="navbar-brand">🍽 <span>Kateryu</span></div>
+        <div className="navbar-actions">
+          <span className="navbar-user">Hi, {user?.name}</span>
+          <button className="btn-ghost" onClick={() => navigate('/my-bookings')}>My Bookings</button>
+          <button className="btn-ghost" onClick={() => { logout(); navigate('/login'); }}>Sign out</button>
         </div>
-      </div>
-      <div style={styles.content}>
-        <h3>Available Caterers</h3>
-        {caterers.length === 0 && <p style={{ color: '#888' }}>No caterers available yet.</p>}
+      </nav>
+
+      <div className="content">
+        {/* Hero strip */}
+        <div style={styles.heroStrip} className="fade-up">
+          <div>
+            <h2 style={styles.heroTitle}>Find Your Perfect Caterer</h2>
+            <p style={styles.heroSub}>Browse verified caterers for every occasion</p>
+          </div>
+          <div style={styles.searchWrap}>
+            <span style={styles.searchIcon}>🔍</span>
+            <input style={styles.searchInput} placeholder="Search by name, cuisine or city…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={styles.statsRow}>
+          {[
+            { n: caterers.length, label: 'Caterers available' },
+            { n: '⭐ 4.8', label: 'Avg. rating' },
+            { n: '24h', label: 'Avg. response time' },
+          ].map((s, i) => (
+            <div key={i} style={styles.statCard}>
+              <span style={styles.statN}>{s.n}</span>
+              <span style={styles.statLabel}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        {loading && <p style={{ color: '#8C7B72', textAlign: 'center', padding: 60 }}>Loading caterers…</p>}
+        {!loading && filtered.length === 0 && (
+          <div style={styles.empty}>
+            <p style={{ fontSize: 40 }}>🍽</p>
+            <p style={{ color: '#8C7B72' }}>{search ? 'No caterers match your search.' : 'No caterers listed yet.'}</p>
+          </div>
+        )}
         <div style={styles.grid}>
-          {caterers.map(c => (
-            <div key={c._id} style={styles.card}>
-              <h3 style={styles.name}>{c.user?.name}</h3>
-              <p style={styles.bio}>{c.bio || 'No bio provided'}</p>
-              <div style={styles.tags}>
-                {c.cuisine?.map(cu => <span key={cu} style={styles.tag}>{cu}</span>)}
+          {filtered.map((c, i) => (
+            <div key={c._id} className="card" style={{ ...styles.catCard, animationDelay: `${i * 0.05}s` }}>
+              <div style={styles.cardTop}>
+                <div style={styles.avatar}>
+                  {c.user?.name?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={styles.catName}>{c.user?.name}</h3>
+                  <p style={styles.catArea}>📍 {c.serviceArea || 'Location not set'}</p>
+                </div>
+                <div style={styles.priceTag}>
+                  <span style={styles.priceNum}>₹{c.pricePerPlate || '—'}</span>
+                  <span style={styles.priceSub}>/plate</span>
+                </div>
               </div>
-              <p style={styles.detail}>📍 {c.serviceArea || 'Location not set'}</p>
-              <p style={styles.detail}>💰 ₹{c.pricePerPlate || '—'} per plate</p>
-              <button style={styles.button} onClick={() => navigate(`/book/${c._id}`)}>
+
+              {c.bio && <p style={styles.catBio}>{c.bio}</p>}
+
+              <div style={styles.tagRow}>
+                {c.cuisine?.slice(0, 4).map(cu => (
+                  <span key={cu} className="tag">{cu}</span>
+                ))}
+              </div>
+
+              <button className="btn-primary" style={{ marginTop: 16 }}
+                onClick={() => navigate(`/book/${c._id}`)}>
                 Book Now
               </button>
             </div>
@@ -47,16 +109,51 @@ export default function BrowseCaterers() {
 }
 
 const styles = {
-  page: { minHeight: '100vh', background: '#f9f9f9' },
-  navbar: { background: '#4F46E5', color: '#fff', padding: '14px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  navBtn: { background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 6, cursor: 'pointer' },
-  content: { maxWidth: 1100, margin: '0 auto', padding: 32 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginTop: 16 },
-  card: { background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' },
-  name: { margin: '0 0 8px', color: '#333' },
-  bio: { color: '#666', fontSize: 14, marginBottom: 12 },
-  tags: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  tag: { background: '#EEF2FF', color: '#4F46E5', padding: '3px 10px', borderRadius: 20, fontSize: 12 },
-  detail: { fontSize: 13, color: '#555', margin: '4px 0' },
-  button: { width: '100%', marginTop: 16, padding: 10, background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }
+  heroStrip: {
+    background: 'linear-gradient(135deg, #1C1917 0%, #3D2B1F 100%)',
+    borderRadius: 20, padding: '36px 40px', marginBottom: 28,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
+    flexWrap: 'wrap',
+  },
+  heroTitle: { fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 700, color: '#FAF7F2', marginBottom: 4 },
+  heroSub: { fontSize: 14, color: 'rgba(250,247,242,0.60)' },
+  searchWrap: {
+    display: 'flex', alignItems: 'center',
+    background: 'rgba(255,255,255,0.10)', borderRadius: 10,
+    padding: '0 16px', gap: 10, minWidth: 300, flex: '0 0 auto',
+  },
+  searchIcon: { fontSize: 16 },
+  searchInput: {
+    background: 'transparent', border: 'none', outline: 'none',
+    color: '#FAF7F2', fontSize: 14, padding: '12px 0', width: '100%',
+    fontFamily: 'DM Sans, sans-serif',
+  },
+  statsRow: { display: 'flex', gap: 16, marginBottom: 32 },
+  statCard: {
+    flex: 1, background: '#FFFFFF', borderRadius: 12, padding: '16px 20px',
+    border: '1px solid #E8DDD5', display: 'flex', flexDirection: 'column', gap: 3,
+  },
+  statN: { fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 700, color: '#1C1917' },
+  statLabel: { fontSize: 12, color: '#8C7B72' },
+  grid: {
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20,
+  },
+  catCard: { padding: 24, animation: 'fadeUp 0.4s ease both' },
+  cardTop: { display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 },
+  avatar: {
+    width: 48, height: 48, borderRadius: 14,
+    background: 'linear-gradient(135deg, #C1440E, #E05C28)',
+    color: '#fff', fontFamily: 'Playfair Display, serif',
+    fontSize: 20, fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  catName: { fontFamily: 'Playfair Display, serif', fontSize: 17, fontWeight: 600, color: '#1C1917', marginBottom: 2 },
+  catArea: { fontSize: 13, color: '#8C7B72' },
+  priceTag: { textAlign: 'right', flexShrink: 0 },
+  priceNum: { fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700, color: '#C1440E', display: 'block' },
+  priceSub: { fontSize: 11, color: '#8C7B72' },
+  catBio: { fontSize: 13, color: '#5C4F49', lineHeight: 1.6, marginBottom: 12 },
+  tagRow: { display: 'flex', flexWrap: 'wrap', gap: 6 },
+  empty: { textAlign: 'center', padding: 80 },
 };
