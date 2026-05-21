@@ -4,8 +4,15 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://kateryu.vercel.app'  // ← replace with your actual Vercel URL
+  ],
+  credentials: true
+}));
 app.use(express.json());
+
 
 // ✅ correct paths — files live in routes/ subfolder
 app.use('/api/auth',     require('./routes/auth'));
