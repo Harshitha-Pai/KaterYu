@@ -3,11 +3,12 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+
 const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://kateryu.vercel.app'  // ← replace with your actual Vercel URL
+    'https://kater-yu.vercel.app'  // ← replace with your actual Vercel URL
   ],
   credentials: true
 }));
